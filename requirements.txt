@@ -1,0 +1,6 @@
+flask>=3.0.0
+numpy>=1.24.0
+# For full model inference (optional — remove if not using the .keras model):
+# tensorflow>=2.16.0
+# For production Echo Loop (optional):
+# sentence-transformers>=2.7.0

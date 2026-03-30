@@ -1,0 +1,604 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>EchoSign — Live Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#050508;--surface:#0d0d14;--surface2:#13131e;--surface3:#1a1a2e;
+  --accent:#7c5cfc;--accent2:#c084fc;--accent3:#38bdf8;--green:#34d399;
+  --red:#f87171;--text:#e8e6f0;--muted:#6b6880;--border:rgba(124,92,252,.18);
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg);color:var(--text);font-family:'Syne',sans-serif;min-height:100vh;overflow-x:hidden}
+
+/* ── TOP BAR ─────────────────── */
+.topbar{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:1rem 2rem;border-bottom:1px solid var(--border);
+  background:rgba(5,5,8,.9);backdrop-filter:blur(20px);
+  position:sticky;top:0;z-index:50;
+}
+.logo{font-family:'Space Mono',monospace;font-size:1rem;color:var(--accent2);letter-spacing:2px}
+.logo span{color:var(--accent3)}
+.topbar-right{display:flex;align-items:center;gap:1rem}
+.status-dot{
+  width:8px;height:8px;border-radius:50%;background:var(--red);
+  display:inline-block;margin-right:.4rem;
+  animation:blink 1.5s infinite;
+}
+.status-dot.connected{background:var(--green);animation:none}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.2}}
+.status-label{font-size:.75rem;font-family:'Space Mono',monospace;color:var(--muted)}
+.back-link{color:var(--muted);text-decoration:none;font-size:.8rem;transition:color .2s}
+.back-link:hover{color:var(--text)}
+
+/* ── LAYOUT ─────────────────── */
+.dashboard{display:grid;grid-template-columns:320px 1fr 280px;gap:0;height:calc(100vh - 57px)}
+
+/* ── LEFT PANEL ─────────────── */
+.panel-left{
+  border-right:1px solid var(--border);
+  padding:1.5rem;overflow-y:auto;
+  display:flex;flex-direction:column;gap:1.2rem;
+}
+.panel-section{
+  background:var(--surface2);border:1px solid var(--border);
+  border-radius:12px;padding:1.2rem;
+}
+.panel-title{
+  font-size:.65rem;letter-spacing:2px;color:var(--accent);
+  font-family:'Space Mono',monospace;margin-bottom:1rem;
+}
+
+/* Language selector */
+.lang-grid{display:grid;grid-template-columns:1fr 1fr;gap:.5rem}
+.lang-btn{
+  padding:.6rem;border-radius:8px;border:1px solid var(--border);
+  background:var(--surface3);color:var(--muted);font-family:'Space Mono',monospace;
+  font-size:.75rem;cursor:pointer;transition:all .2s;text-align:center;
+}
+.lang-btn.active{border-color:var(--accent);color:var(--accent2);background:rgba(124,92,252,.12)}
+.lang-btn:hover:not(.active){border-color:rgba(124,92,252,.4);color:var(--text)}
+
+/* ACCI panel */
+.acci-input{
+  width:100%;background:rgba(255,255,255,.03);
+  border:1px solid var(--border);border-radius:8px;
+  padding:.7rem;color:var(--text);font-family:'Syne',sans-serif;font-size:.82rem;
+  resize:none;margin-bottom:.7rem;
+}
+.acci-input:focus{outline:none;border-color:var(--accent)}
+.acci-input::placeholder{color:var(--muted)}
+.btn-sm{
+  width:100%;padding:.55rem;border-radius:6px;border:none;
+  background:linear-gradient(135deg,var(--accent),var(--accent2));
+  color:#fff;font-family:'Syne',sans-serif;font-size:.8rem;font-weight:700;
+  cursor:pointer;transition:all .2s;
+}
+.btn-sm:hover{opacity:.9;transform:translateY(-1px)}
+.acci-result{
+  margin-top:.7rem;padding:.6rem;background:rgba(56,189,248,.06);
+  border:1px solid rgba(56,189,248,.2);border-radius:6px;
+  font-size:.75rem;font-family:'Space Mono',monospace;color:var(--accent3);
+  display:none;
+}
+.candidate-chips{display:flex;flex-wrap:wrap;gap:.3rem;margin-top:.4rem}
+.cchip{
+  padding:.2rem .5rem;border-radius:4px;font-size:.7rem;
+  background:rgba(124,92,252,.15);color:var(--accent2);
+  font-family:'Space Mono',monospace;
+}
+
+/* Sensor sliders */
+.sensor-row{margin-bottom:.7rem}
+.sensor-label{display:flex;justify-content:space-between;font-size:.72rem;color:var(--muted);margin-bottom:.3rem;font-family:'Space Mono',monospace}
+.sensor-bar-bg{height:6px;background:rgba(255,255,255,.06);border-radius:3px;overflow:hidden}
+.sensor-bar-fill{height:100%;border-radius:3px;background:linear-gradient(90deg,var(--accent),var(--accent2));transition:width .3s ease}
+.sensor-val{font-size:.65rem;color:var(--accent3)}
+
+/* ── CENTER PANEL ─────────────── */
+.panel-center{padding:2rem;display:flex;flex-direction:column;gap:1.5rem;overflow-y:auto}
+
+/* Detection display */
+.detection-card{
+  background:var(--surface2);border:1px solid var(--border);border-radius:16px;
+  padding:2.5rem;text-align:center;position:relative;overflow:hidden;
+}
+.detection-card::before{
+  content:'';position:absolute;top:0;left:0;right:0;height:2px;
+  background:linear-gradient(90deg,var(--accent),var(--accent3));
+}
+.det-label-small{font-size:.7rem;font-family:'Space Mono',monospace;color:var(--muted);letter-spacing:2px;margin-bottom:.8rem}
+.det-word{
+  font-size:4.5rem;font-weight:800;letter-spacing:-2px;
+  background:linear-gradient(135deg,var(--accent),var(--accent2));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+  min-height:5rem;display:flex;align-items:center;justify-content:center;
+  transition:all .3s;
+}
+.det-translation{font-size:2rem;color:var(--accent3);font-weight:700;margin-top:.5rem;min-height:2.5rem}
+.det-confidence{
+  margin-top:1rem;font-family:'Space Mono',monospace;font-size:.78rem;color:var(--muted);
+}
+.conf-bar{
+  height:4px;background:rgba(255,255,255,.06);border-radius:2px;
+  margin:.5rem auto;max-width:200px;overflow:hidden;
+}
+.conf-fill{height:100%;background:linear-gradient(90deg,var(--green),var(--accent3));border-radius:2px;transition:width .4s ease}
+
+/* Controls */
+.controls{display:flex;gap:.8rem;flex-wrap:wrap;justify-content:center;margin-top:1.2rem}
+.ctrl-btn{
+  padding:.6rem 1.4rem;border-radius:8px;border:1px solid var(--border);
+  background:var(--surface3);color:var(--text);font-family:'Syne',sans-serif;
+  font-size:.82rem;cursor:pointer;transition:all .2s;
+}
+.ctrl-btn:hover{border-color:var(--accent);background:rgba(124,92,252,.1)}
+.ctrl-btn.primary{
+  background:linear-gradient(135deg,var(--accent),var(--accent2));
+  border-color:transparent;color:#fff;font-weight:700;
+}
+.ctrl-btn.danger{border-color:rgba(248,113,113,.3);color:var(--red)}
+.ctrl-btn.danger:hover{background:rgba(248,113,113,.1)}
+
+/* All probs */
+.probs-grid{
+  display:grid;grid-template-columns:repeat(5,1fr);gap:.6rem;
+  background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:1.2rem;
+}
+.prob-item{text-align:center}
+.prob-name{font-size:.65rem;font-family:'Space Mono',monospace;color:var(--muted);margin-bottom:.3rem}
+.prob-circle{
+  width:48px;height:48px;border-radius:50%;
+  background:conic-gradient(var(--accent) 0%, transparent 0%);
+  margin:0 auto;display:flex;align-items:center;justify-content:center;
+  font-size:.65rem;font-weight:700;color:var(--text);
+  position:relative;
+}
+.prob-circle-bg{
+  width:48px;height:48px;border-radius:50%;
+  background:rgba(255,255,255,.04);border:2px solid var(--border);
+  position:absolute;top:0;left:0;
+}
+.prob-val{font-size:.7rem;font-weight:700;color:var(--accent2);margin-top:.3rem}
+
+/* History */
+.history-list{
+  background:var(--surface2);border:1px solid var(--border);border-radius:12px;
+  overflow:hidden;
+}
+.history-header{padding:.8rem 1.2rem;border-bottom:1px solid var(--border);font-size:.65rem;letter-spacing:2px;color:var(--accent);font-family:'Space Mono',monospace}
+.history-items{max-height:200px;overflow-y:auto}
+.hist-item{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:.6rem 1.2rem;border-bottom:1px solid rgba(255,255,255,.03);
+  font-size:.8rem;transition:background .1s;
+}
+.hist-item:hover{background:rgba(255,255,255,.02)}
+.hist-label{font-weight:700;color:var(--accent2)}
+.hist-spoken{color:var(--accent3);font-style:italic}
+.hist-conf{font-family:'Space Mono',monospace;font-size:.7rem;color:var(--muted)}
+.hist-time{font-family:'Space Mono',monospace;font-size:.65rem;color:var(--muted)}
+
+/* ── RIGHT PANEL ─────────────── */
+.panel-right{
+  border-left:1px solid var(--border);padding:1.5rem;
+  display:flex;flex-direction:column;gap:1.2rem;overflow-y:auto;
+}
+
+/* Echo loop card */
+.echo-card{
+  background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:1.2rem;
+}
+.acc-display{
+  text-align:center;padding:1.5rem 0;
+}
+.acc-val{
+  font-size:2.8rem;font-weight:800;
+  background:linear-gradient(135deg,var(--green),var(--accent3));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+}
+.acc-label{font-size:.7rem;color:var(--muted);font-family:'Space Mono',monospace}
+.conv-count{font-size:.75rem;color:var(--muted);margin-top:.3rem;font-family:'Space Mono',monospace}
+
+/* Confidence map bars */
+.conf-map{display:flex;flex-direction:column;gap:.5rem}
+.cm-row{display:flex;align-items:center;gap:.6rem}
+.cm-name{font-size:.7rem;font-family:'Space Mono',monospace;color:var(--muted);width:42px}
+.cm-bar-bg{flex:1;height:6px;background:rgba(255,255,255,.06);border-radius:3px;overflow:hidden}
+.cm-bar-fill{height:100%;border-radius:3px;background:linear-gradient(90deg,var(--accent),var(--accent2));transition:width .5s ease}
+.cm-val{font-size:.65rem;color:var(--accent2);font-family:'Space Mono',monospace;width:28px;text-align:right}
+
+/* Echo feedback buttons */
+.echo-feedback{display:flex;gap:.4rem;margin-top:.8rem}
+.echo-btn{
+  flex:1;padding:.5rem;border-radius:6px;border:1px solid var(--border);
+  background:var(--surface3);color:var(--muted);font-size:.75rem;
+  cursor:pointer;transition:all .2s;font-family:'Syne',sans-serif;
+}
+.echo-btn.confirm{border-color:rgba(52,211,153,.3);color:var(--green)}
+.echo-btn.confirm:hover{background:rgba(52,211,153,.1)}
+.echo-btn.reject{border-color:rgba(248,113,113,.3);color:var(--red)}
+.echo-btn.reject:hover{background:rgba(248,113,113,.1)}
+
+/* Tts log */
+.tts-log{
+  background:var(--surface2);border:1px solid var(--border);border-radius:12px;
+  overflow:hidden;flex:1;
+}
+.tts-items{padding:.8rem;display:flex;flex-direction:column;gap:.4rem;max-height:220px;overflow-y:auto}
+.tts-item{
+  padding:.5rem .7rem;border-radius:6px;background:rgba(124,92,252,.06);
+  border-left:2px solid var(--accent);font-size:.78rem;
+}
+.tts-word{font-weight:700;color:var(--accent2)}
+.tts-lang{font-size:.65rem;color:var(--muted);font-family:'Space Mono',monospace}
+
+/* Streaming indicator */
+.stream-indicator{
+  display:flex;align-items:center;gap:.5rem;
+  font-size:.7rem;font-family:'Space Mono',monospace;color:var(--muted);
+  padding:.5rem .8rem;background:rgba(255,255,255,.02);border:1px solid var(--border);border-radius:6px;
+}
+.stream-dot{width:6px;height:6px;border-radius:50%;background:var(--muted)}
+.stream-dot.active{background:var(--green);animation:blink 0.8s infinite}
+
+@media(max-width:1100px){
+  .dashboard{grid-template-columns:1fr;height:auto}
+  .panel-left,.panel-right{border:none;border-bottom:1px solid var(--border)}
+}
+</style>
+</head>
+<body>
+
+<!-- TOP BAR -->
+<div class="topbar">
+  <div class="logo">ECHO<span>SIGN</span> <span style="font-size:.65rem;color:var(--muted);margin-left:.8rem;font-family:'Space Mono',monospace">/ LIVE DASHBOARD</span></div>
+  <div class="topbar-right">
+    <div class="stream-indicator" id="streamStatus">
+      <div class="stream-dot" id="streamDot"></div>
+      <span id="streamLabel">DISCONNECTED</span>
+    </div>
+    <a href="/" class="back-link">← Product Page</a>
+  </div>
+</div>
+
+<div class="dashboard">
+
+  <!-- LEFT: Controls & Settings -->
+  <div class="panel-left">
+
+    <!-- Language -->
+    <div class="panel-section">
+      <div class="panel-title">// OUTPUT LANGUAGE</div>
+      <div class="lang-grid">
+        <button class="lang-btn active" data-lang="en" onclick="setLang('en',this)">🇺🇸 English</button>
+        <button class="lang-btn" data-lang="hi" onclick="setLang('hi',this)">🇮🇳 Hindi</button>
+        <button class="lang-btn" data-lang="es" onclick="setLang('es',this)">🇪🇸 Español</button>
+        <button class="lang-btn" data-lang="zh" onclick="setLang('zh',this)">🇨🇳 中文</button>
+      </div>
+    </div>
+
+    <!-- ACCI -->
+    <div class="panel-section">
+      <div class="panel-title">// ACCI — CONTEXT INJECTION</div>
+      <textarea class="acci-input" id="acciInput" rows="3" placeholder="Type what your conversation partner said... e.g. 'Are you feeling okay? Do you need some water?'"></textarea>
+      <button class="btn-sm" onclick="runAcci()">Inject Context →</button>
+      <div class="acci-result" id="acciResult">
+        <div>Search space narrowed to:</div>
+        <div class="candidate-chips" id="acciCandidates"></div>
+        <div style="margin-top:.4rem;color:var(--muted)">Reduction: <span id="acciReduction"></span></div>
+      </div>
+    </div>
+
+    <!-- Live Sensor Simulation -->
+    <div class="panel-section">
+      <div class="panel-title">// SENSOR FEED (SIMULATED)</div>
+      <div id="sensorDisplay"></div>
+      <button class="btn-sm" onclick="toggleStream()" id="streamBtn" style="margin-top:.8rem">▶ Start Stream</button>
+    </div>
+
+  </div>
+
+  <!-- CENTER: Main Detection -->
+  <div class="panel-center">
+
+    <div class="detection-card">
+      <div class="det-label-small">DETECTED GESTURE</div>
+      <div class="det-word" id="detWord">—</div>
+      <div class="det-translation" id="detTranslation">Waiting for gesture...</div>
+      <div class="det-confidence">
+        Confidence: <span id="detConf">—</span>
+        <div class="conf-bar"><div class="conf-fill" id="confFill" style="width:0%"></div></div>
+        <div style="font-size:.65rem;margin-top:.3rem">
+          ACCI: <span id="acciActive" style="color:var(--muted)">OFF</span> &nbsp;|&nbsp;
+          Echo Loop: <span style="color:var(--green)">ACTIVE</span>
+        </div>
+      </div>
+      <div class="controls">
+        <button class="ctrl-btn primary" onclick="runSingleDetect()">⚡ Detect Now</button>
+        <button class="ctrl-btn" onclick="simulateGesture('YES')">Test: YES</button>
+        <button class="ctrl-btn" onclick="simulateGesture('HELLO')">Test: HELLO</button>
+        <button class="ctrl-btn" onclick="simulateGesture('WATER')">Test: WATER</button>
+        <button class="ctrl-btn danger" onclick="resetEchoLoop()">↺ Reset Loop</button>
+      </div>
+    </div>
+
+    <!-- All Probabilities -->
+    <div>
+      <div style="font-size:.65rem;letter-spacing:2px;color:var(--accent);font-family:'Space Mono',monospace;margin-bottom:.8rem">// CLASS PROBABILITIES</div>
+      <div class="probs-grid" id="probsGrid">
+        <!-- filled by JS -->
+      </div>
+    </div>
+
+    <!-- History -->
+    <div class="history-list">
+      <div class="history-header">// DETECTION HISTORY</div>
+      <div class="history-items" id="historyItems">
+        <div style="padding:1.2rem;text-align:center;color:var(--muted);font-size:.8rem">No detections yet</div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- RIGHT: Echo Loop -->
+  <div class="panel-right">
+
+    <div class="echo-card">
+      <div class="panel-title">// ECHO LOOP STATUS</div>
+      <div class="acc-display">
+        <div class="acc-val" id="echoAcc">42%</div>
+        <div class="acc-label">ESTIMATED ACCURACY</div>
+        <div class="conv-count" id="convCount">0 confirmations</div>
+      </div>
+      <div class="conf-map" id="confMap"></div>
+      <div style="margin-top:1rem;font-size:.7rem;color:var(--muted);font-family:'Space Mono',monospace">Manual feedback on last gesture:</div>
+      <div class="echo-feedback">
+        <button class="echo-btn confirm" onclick="sendEchoFeedback(true)">✓ Confirmed</button>
+        <button class="echo-btn reject" onclick="sendEchoFeedback(false)">✗ Wrong</button>
+      </div>
+    </div>
+
+    <div class="tts-log">
+      <div class="history-header">// TTS OUTPUT LOG</div>
+      <div class="tts-items" id="ttsLog">
+        <div style="color:var(--muted);font-size:.78rem;padding:.5rem">No speech output yet</div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+// ── State ──────────────────────────────────────────────────────
+let currentLang = 'en';
+let acciCandidates = [];
+let lastGesture = null;
+let streaming = false;
+let streamTimer = null;
+let history = [];
+
+const LABELS = ['HELLO','HELP','NO','WATER','YES'];
+const TRANSLATIONS = {
+  HELLO:{en:'Hello',es:'Hola',hi:'नमस्ते',zh:'你好'},
+  HELP: {en:'Help', es:'Ayuda',hi:'मदद',  zh:'帮助'},
+  NO:   {en:'No',   es:'No',  hi:'नहीं',  zh:'不'},
+  WATER:{en:'Water',es:'Agua',hi:'पानी',  zh:'水'},
+  YES:  {en:'Yes',  es:'Sí',  hi:'हाँ',   zh:'是'},
+};
+
+// ── Sensor display ─────────────────────────────────────────────
+const SENSOR_NAMES = ['THUMB','INDEX','MIDDLE','RING','PINKY','AX','AY','AZ'];
+let sensorValues = [0,0.4,0.2,0.1,0,-.07,-.49,.80];
+
+function renderSensors(){
+  const div = document.getElementById('sensorDisplay');
+  div.innerHTML = SENSOR_NAMES.map((name,i)=>{
+    const v = sensorValues[i];
+    const pct = Math.round(((v+1)/2)*100);
+    const display = v.toFixed(3);
+    return `<div class="sensor-row">
+      <div class="sensor-label"><span>${name}</span><span class="sensor-val">${display}</span></div>
+      <div class="sensor-bar-bg"><div class="sensor-bar-fill" style="width:${Math.max(0,Math.min(100,pct))}%"></div></div>
+    </div>`;
+  }).join('');
+}
+
+function randomizeSensors(){
+  sensorValues = sensorValues.map((v,i)=>{
+    const noise = (Math.random()-.5)*.08;
+    if(i<5) return Math.max(0,Math.min(1,v+noise));
+    return Math.max(-1,Math.min(1,v+noise));
+  });
+  renderSensors();
+}
+
+renderSensors();
+
+// ── Prob circles ───────────────────────────────────────────────
+function renderProbs(probObj){
+  const grid = document.getElementById('probsGrid');
+  grid.innerHTML = LABELS.map(l=>{
+    const pct = probObj ? (probObj[l]||0) : 0;
+    const deg = Math.round(pct*3.6);
+    const color = pct > 50 ? 'var(--accent2)' : pct > 25 ? 'var(--accent3)' : 'var(--muted)';
+    return `<div class="prob-item">
+      <div class="prob-name">${l}</div>
+      <div style="position:relative;width:48px;height:48px;margin:0 auto;
+        background:conic-gradient(${color} ${deg}deg,rgba(255,255,255,.04) ${deg}deg);
+        border-radius:50%;display:flex;align-items:center;justify-content:center;">
+        <div style="position:absolute;inset:4px;background:var(--surface2);border-radius:50%"></div>
+        <span style="position:relative;font-size:.6rem;font-weight:700;color:var(--text)">${Math.round(pct)}%</span>
+      </div>
+    </div>`;
+  }).join('');
+}
+renderProbs(null);
+
+// ── Confidence map ─────────────────────────────────────────────
+function renderConfMap(cmData){
+  const div = document.getElementById('confMap');
+  div.innerHTML = LABELS.map(l=>{
+    const v = cmData ? cmData[l] : 1.0;
+    const pct = Math.round(((v-0.5)/1.5)*100);
+    return `<div class="cm-row">
+      <div class="cm-name">${l}</div>
+      <div class="cm-bar-bg"><div class="cm-bar-fill" style="width:${Math.max(0,Math.min(100,pct))}%"></div></div>
+      <div class="cm-val">${v.toFixed(2)}</div>
+    </div>`;
+  }).join('');
+}
+renderConfMap(null);
+
+// ── Language ───────────────────────────────────────────────────
+function setLang(lang, btn){
+  currentLang = lang;
+  document.querySelectorAll('.lang-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  if(lastGesture){
+    document.getElementById('detTranslation').textContent = TRANSLATIONS[lastGesture]?.[lang] || lastGesture;
+  }
+}
+
+// ── ACCI ───────────────────────────────────────────────────────
+async function runAcci(){
+  const text = document.getElementById('acciInput').value.trim();
+  if(!text) return;
+  try{
+    const r = await fetch('/api/acci',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({transcript:text})});
+    const data = await r.json();
+    acciCandidates = data.candidates;
+    document.getElementById('acciCandidates').innerHTML = data.candidates.map(c=>`<span class="cchip">${c}</span>`).join('');
+    document.getElementById('acciReduction').textContent = data.search_space_reduction;
+    document.getElementById('acciResult').style.display='block';
+    document.getElementById('acciActive').style.color = data.acci_active ? 'var(--accent3)' : 'var(--muted)';
+    document.getElementById('acciActive').textContent = data.acci_active ? 'ON (' + data.candidates.join(',') + ')' : 'OFF';
+  }catch(e){ console.error(e); }
+}
+
+// ── Detection ──────────────────────────────────────────────────
+async function runDetection(gestureOverride){
+  const sensor = gestureOverride ? getGestureSensor(gestureOverride) : [...sensorValues, 0, 0, 0];
+  try{
+    const body = {sensor, language:currentLang, context:acciCandidates};
+    const r = await fetch('/api/detect',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+    const data = await r.json();
+    lastGesture = data.label;
+    updateDetectionUI(data);
+    addToHistory(data);
+    addToTtsLog(data);
+  }catch(e){ console.error(e); }
+}
+
+function getGestureSensor(label){
+  // Produce deterministic-ish sensor vector per gesture label
+  const seed = label.charCodeAt(0) + label.charCodeAt(1);
+  return [
+    (seed%30)/100, ((seed+10)%40)/100, ((seed+20)%30)/100,
+    ((seed+5)%20)/100, 0,
+    -0.07+(seed%10)*.01, -0.49+(seed%5)*.02, 0.80-(seed%8)*.01
+  ];
+}
+
+function updateDetectionUI(data){
+  document.getElementById('detWord').textContent = data.label;
+  document.getElementById('detTranslation').textContent = data.spoken;
+  const conf = data.confidence;
+  document.getElementById('detConf').textContent = conf + '%';
+  document.getElementById('confFill').style.width = conf + '%';
+  renderProbs(data.all_probs);
+  // Animate word
+  const w = document.getElementById('detWord');
+  w.style.transform='scale(1.1)';
+  setTimeout(()=>w.style.transform='scale(1)',300);
+}
+
+function addToHistory(data){
+  history.unshift(data);
+  const container = document.getElementById('historyItems');
+  if(history.length===1) container.innerHTML='';
+  const t = new Date(data.timestamp).toLocaleTimeString();
+  const row = document.createElement('div');
+  row.className='hist-item';
+  row.innerHTML=`
+    <span class="hist-label">${data.label}</span>
+    <span class="hist-spoken">${data.spoken}</span>
+    <span class="hist-conf">${data.confidence}%</span>
+    <span class="hist-time">${t}</span>`;
+  container.insertBefore(row, container.firstChild);
+  if(history.length > 20) container.removeChild(container.lastChild);
+}
+
+function addToTtsLog(data){
+  const log = document.getElementById('ttsLog');
+  if(log.querySelector('[style]')) log.innerHTML='';
+  const item = document.createElement('div');
+  item.className='tts-item';
+  item.innerHTML=`<span class="tts-word">${data.spoken}</span> <span class="tts-lang">[${data.label} · ${data.language.toUpperCase()}]</span>`;
+  log.insertBefore(item, log.firstChild);
+  if(log.children.length > 10) log.removeChild(log.lastChild);
+  // Browser TTS
+  if('speechSynthesis' in window){
+    const u = new SpeechSynthesisUtterance(data.spoken);
+    const langMap={en:'en-US',hi:'hi-IN',es:'es-ES',zh:'zh-CN'};
+    u.lang = langMap[data.language] || 'en-US';
+    window.speechSynthesis.speak(u);
+  }
+}
+
+function runSingleDetect(){ randomizeSensors(); runDetection(); }
+function simulateGesture(g){ runDetection(g); }
+
+// ── Echo Loop ──────────────────────────────────────────────────
+async function sendEchoFeedback(confirmed){
+  if(!lastGesture) return;
+  const similarity = confirmed ? 0.85 + Math.random()*.1 : 0.25 + Math.random()*.1;
+  try{
+    const r = await fetch('/api/echo-loop',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({gesture:lastGesture,confirmed,similarity})});
+    const data = await r.json();
+    document.getElementById('echoAcc').textContent = data.estimated_accuracy+'%';
+    document.getElementById('convCount').textContent = data.conversation_count+' confirmations';
+    renderConfMap(data.confidence_map);
+  }catch(e){ console.error(e); }
+}
+
+async function resetEchoLoop(){
+  await fetch('/api/reset-loop',{method:'POST'});
+  document.getElementById('echoAcc').textContent='42%';
+  document.getElementById('convCount').textContent='0 confirmations';
+  renderConfMap(null);
+  lastGesture=null;
+}
+
+// ── Streaming ──────────────────────────────────────────────────
+function toggleStream(){
+  streaming = !streaming;
+  const btn = document.getElementById('streamBtn');
+  const dot = document.getElementById('streamDot');
+  const label = document.getElementById('streamLabel');
+  if(streaming){
+    btn.textContent='⏹ Stop Stream';
+    dot.classList.add('active');
+    label.textContent='STREAMING';
+    streamTimer = setInterval(()=>{randomizeSensors();runDetection();},2000);
+  }else{
+    btn.textContent='▶ Start Stream';
+    dot.classList.remove('active');
+    label.textContent='PAUSED';
+    clearInterval(streamTimer);
+  }
+}
+
+// Initial render
+renderSensors();
+renderProbs(null);
+renderConfMap(null);
+</script>
+</body>
+</html>

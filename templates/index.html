@@ -1,0 +1,671 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>EchoSign — Gesture-to-Speech Glove</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #050508;
+  --surface: #0d0d14;
+  --surface2: #13131e;
+  --accent: #7c5cfc;
+  --accent2: #c084fc;
+  --accent3: #38bdf8;
+  --text: #e8e6f0;
+  --muted: #6b6880;
+  --border: rgba(124,92,252,0.18);
+  --glow: rgba(124,92,252,0.35);
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{
+  background:var(--bg);
+  color:var(--text);
+  font-family:'Syne',sans-serif;
+  overflow-x:hidden;
+}
+
+/* ── NOISE OVERLAY ─────────────────── */
+body::before{
+  content:'';position:fixed;inset:0;
+  background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+  pointer-events:none;z-index:0;opacity:.4;
+}
+
+/* ── NAV ─────────────────────────────── */
+nav{
+  position:fixed;top:0;left:0;right:0;z-index:100;
+  display:flex;align-items:center;justify-content:space-between;
+  padding:1.2rem 3rem;
+  background:rgba(5,5,8,0.7);
+  backdrop-filter:blur(20px);
+  border-bottom:1px solid var(--border);
+}
+.logo{font-family:'Space Mono',monospace;font-size:1.1rem;color:var(--accent2);letter-spacing:2px}
+.logo span{color:var(--accent3)}
+nav ul{list-style:none;display:flex;gap:2.5rem}
+nav ul a{color:var(--muted);text-decoration:none;font-size:.85rem;letter-spacing:1px;transition:color .2s}
+nav ul a:hover{color:var(--text)}
+.nav-cta{
+  background:var(--accent);color:#fff;
+  padding:.5rem 1.4rem;border-radius:4px;
+  text-decoration:none;font-size:.85rem;font-weight:700;
+  transition:all .2s;
+}
+.nav-cta:hover{background:var(--accent2);transform:translateY(-1px)}
+
+/* ── HERO ─────────────────────────────── */
+#hero{
+  min-height:100vh;
+  display:flex;flex-direction:column;
+  align-items:center;justify-content:center;
+  text-align:center;
+  padding:6rem 2rem 4rem;
+  position:relative;
+  overflow:hidden;
+}
+.hero-grid{
+  position:absolute;inset:0;
+  background-image:
+    linear-gradient(rgba(124,92,252,.06) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(124,92,252,.06) 1px,transparent 1px);
+  background-size:48px 48px;
+  mask-image:radial-gradient(ellipse 80% 80% at 50% 50%,black 0%,transparent 100%);
+}
+.hero-orb{
+  position:absolute;width:700px;height:700px;
+  border-radius:50%;
+  background:radial-gradient(circle,rgba(124,92,252,.18) 0%,transparent 70%);
+  top:50%;left:50%;transform:translate(-50%,-50%);
+  animation:pulse 4s ease-in-out infinite;
+}
+@keyframes pulse{0%,100%{transform:translate(-50%,-50%) scale(1);opacity:.8}50%{transform:translate(-50%,-50%) scale(1.08);opacity:1}}
+
+.badge{
+  display:inline-flex;align-items:center;gap:.5rem;
+  border:1px solid var(--border);border-radius:100px;
+  padding:.35rem 1rem;font-size:.75rem;letter-spacing:1.5px;
+  color:var(--accent2);margin-bottom:2.5rem;
+  font-family:'Space Mono',monospace;
+  background:rgba(124,92,252,.05);
+  animation:fadeUp .8s ease both;
+}
+.badge-dot{width:6px;height:6px;border-radius:50%;background:var(--accent3);animation:blink 1.5s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.2}}
+
+h1{
+  font-size:clamp(3rem,7vw,5.5rem);
+  font-weight:800;line-height:1.05;
+  letter-spacing:-2px;
+  animation:fadeUp .8s .1s ease both;
+}
+h1 em{font-style:normal;color:var(--accent2)}
+h1 strong{
+  background:linear-gradient(135deg,var(--accent),var(--accent3));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+}
+.hero-sub{
+  margin:1.5rem auto 0;
+  max-width:560px;
+  color:var(--muted);font-size:1.05rem;line-height:1.7;
+  animation:fadeUp .8s .2s ease both;
+}
+.hero-actions{
+  display:flex;gap:1rem;margin-top:2.5rem;
+  animation:fadeUp .8s .3s ease both;
+}
+.btn-primary{
+  background:linear-gradient(135deg,var(--accent),var(--accent2));
+  color:#fff;padding:.9rem 2.2rem;border-radius:6px;
+  text-decoration:none;font-weight:700;font-size:.95rem;
+  transition:all .2s;box-shadow:0 0 30px rgba(124,92,252,.4);
+}
+.btn-primary:hover{transform:translateY(-2px);box-shadow:0 0 50px rgba(124,92,252,.6)}
+.btn-outline{
+  border:1px solid var(--border);color:var(--text);
+  padding:.9rem 2.2rem;border-radius:6px;
+  text-decoration:none;font-weight:700;font-size:.95rem;
+  transition:all .2s;background:rgba(255,255,255,.02);
+}
+.btn-outline:hover{border-color:var(--accent);background:rgba(124,92,252,.08)}
+
+@keyframes fadeUp{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:translateY(0)}}
+
+/* ── STATS BAR ─────────────────────────── */
+.stats{
+  display:flex;justify-content:center;gap:0;
+  margin:5rem auto 0;
+  border:1px solid var(--border);border-radius:12px;
+  background:rgba(13,13,20,.8);backdrop-filter:blur(20px);
+  max-width:900px;overflow:hidden;
+  animation:fadeUp .8s .4s ease both;
+}
+.stat{
+  flex:1;padding:1.8rem 2rem;text-align:center;
+  border-right:1px solid var(--border);
+}
+.stat:last-child{border-right:none}
+.stat-val{font-size:2rem;font-weight:800;color:var(--accent2)}
+.stat-label{font-size:.75rem;color:var(--muted);margin-top:.25rem;letter-spacing:1px;font-family:'Space Mono',monospace}
+
+/* ── SECTION COMMON ───────────────────── */
+section{position:relative;z-index:1;padding:6rem 2rem}
+.container{max-width:1100px;margin:0 auto}
+.section-tag{
+  font-family:'Space Mono',monospace;font-size:.7rem;
+  letter-spacing:3px;color:var(--accent);
+  text-transform:uppercase;margin-bottom:1rem;
+}
+.section-title{font-size:clamp(2rem,4vw,3rem);font-weight:800;line-height:1.1;letter-spacing:-1px}
+.section-sub{color:var(--muted);margin-top:.8rem;font-size:1rem;line-height:1.7;max-width:500px}
+
+/* ── FEATURES ─────────────────────────── */
+#features{background:var(--surface)}
+.features-grid{
+  display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));
+  gap:1.5px;margin-top:3rem;
+  background:var(--border);border-radius:16px;overflow:hidden;
+}
+.feat{
+  background:var(--surface2);padding:2.5rem;
+  transition:background .2s;cursor:default;
+}
+.feat:hover{background:#16162a}
+.feat-icon{
+  width:48px;height:48px;border-radius:10px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:1.4rem;margin-bottom:1.5rem;
+}
+.feat h3{font-size:1.1rem;font-weight:700;margin-bottom:.6rem}
+.feat p{color:var(--muted);font-size:.88rem;line-height:1.7}
+.chip{
+  display:inline-block;font-size:.65rem;
+  border-radius:4px;padding:.2rem .6rem;
+  font-family:'Space Mono',monospace;
+  margin-top:.8rem;letter-spacing:.5px;
+}
+.chip-purple{background:rgba(124,92,252,.15);color:var(--accent2)}
+.chip-blue{background:rgba(56,189,248,.12);color:var(--accent3)}
+.chip-green{background:rgba(52,211,153,.12);color:#34d399}
+
+/* ── HOW IT WORKS ─────────────────────── */
+#how{
+  background:linear-gradient(180deg,var(--bg) 0%,var(--surface) 100%);
+}
+.steps{display:flex;gap:0;margin-top:3rem;position:relative}
+.steps::before{
+  content:'';position:absolute;top:28px;left:28px;right:28px;height:2px;
+  background:linear-gradient(90deg,var(--accent),var(--accent3));
+  opacity:.3;
+}
+.step{flex:1;text-align:center;padding:0 1rem;position:relative}
+.step-num{
+  width:56px;height:56px;border-radius:50%;
+  background:linear-gradient(135deg,var(--accent),var(--accent2));
+  display:flex;align-items:center;justify-content:center;
+  font-weight:800;font-size:1.1rem;margin:0 auto 1.2rem;
+  position:relative;z-index:1;
+  box-shadow:0 0 20px rgba(124,92,252,.4);
+}
+.step h4{font-size:.95rem;font-weight:700;margin-bottom:.4rem}
+.step p{color:var(--muted);font-size:.82rem;line-height:1.6}
+
+/* ── ACCI + ECHO LOOP CARDS ─────────────── */
+#innovations{background:var(--surface)}
+.innovations-grid{display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;margin-top:3rem}
+.innov-card{
+  border:1px solid var(--border);border-radius:16px;
+  padding:2.5rem;background:var(--surface2);
+  position:relative;overflow:hidden;
+  transition:transform .2s,box-shadow .2s;
+}
+.innov-card:hover{transform:translateY(-4px);box-shadow:0 20px 60px rgba(124,92,252,.15)}
+.innov-card::before{
+  content:'';position:absolute;top:0;left:0;right:0;height:2px;
+  background:linear-gradient(90deg,var(--accent),var(--accent3));
+}
+.innov-label{
+  font-family:'Space Mono',monospace;font-size:.65rem;
+  color:var(--accent);letter-spacing:2px;
+  border:1px solid rgba(124,92,252,.3);border-radius:4px;
+  display:inline-block;padding:.25rem .7rem;margin-bottom:1.2rem;
+}
+.innov-card h3{font-size:1.4rem;font-weight:800;margin-bottom:.6rem}
+.innov-card .desc{color:var(--muted);font-size:.88rem;line-height:1.7;margin-bottom:1.5rem}
+.innov-metric{
+  background:rgba(124,92,252,.06);border:1px solid var(--border);
+  border-radius:8px;padding:.8rem 1rem;
+  font-family:'Space Mono',monospace;font-size:.8rem;
+  color:var(--accent2);
+}
+
+/* ── ACCURACY CURVE ────────────────────── */
+.curve-chart{
+  margin-top:2rem;border:1px solid var(--border);border-radius:12px;
+  padding:2rem;background:var(--surface2);
+}
+.curve-bars{display:flex;align-items:flex-end;gap:.5rem;height:120px;margin-top:1rem}
+.bar-wrap{flex:1;display:flex;flex-direction:column;align-items:center;gap:.4rem}
+.bar{
+  width:100%;border-radius:4px 4px 0 0;
+  background:linear-gradient(0deg,var(--accent),var(--accent2));
+  transition:height .6s ease;
+}
+.bar-label{font-size:.65rem;color:var(--muted);font-family:'Space Mono',monospace}
+.bar-val{font-size:.7rem;color:var(--accent2);font-weight:700}
+
+/* ── BUY SECTION ───────────────────────── */
+#buy{
+  background:var(--bg);
+  border-top:1px solid var(--border);
+}
+.buy-grid{display:grid;grid-template-columns:1fr 1.2fr;gap:4rem;align-items:start;margin-top:3rem}
+.buy-features{list-style:none;display:flex;flex-direction:column;gap:.8rem;margin-top:1.5rem}
+.buy-features li{
+  display:flex;align-items:center;gap:.8rem;
+  font-size:.88rem;color:var(--muted);
+}
+.buy-features li::before{content:'✓';color:var(--accent2);font-weight:800}
+
+.price-card{
+  border:1px solid var(--border);border-radius:20px;
+  background:linear-gradient(135deg,var(--surface2),var(--surface));
+  padding:2.5rem;position:relative;overflow:hidden;
+}
+.price-card::before{
+  content:'';position:absolute;top:0;left:0;right:0;height:2px;
+  background:linear-gradient(90deg,var(--accent),var(--accent3));
+}
+.price-tag{
+  font-size:3.5rem;font-weight:800;letter-spacing:-2px;
+  background:linear-gradient(135deg,var(--accent),var(--accent2));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+}
+.price-tag span{font-size:1.2rem;font-weight:400;color:var(--muted)}
+.price-period{font-size:.8rem;color:var(--muted);margin-top:.25rem}
+.price-divider{border:none;border-top:1px solid var(--border);margin:1.5rem 0}
+.price-includes{list-style:none;display:flex;flex-direction:column;gap:.7rem;margin-bottom:2rem}
+.price-includes li{display:flex;align-items:center;gap:.7rem;font-size:.88rem}
+.pi-check{color:var(--accent3);font-size:.8rem}
+.btn-buy{
+  display:block;text-align:center;width:100%;
+  background:linear-gradient(135deg,var(--accent),var(--accent2));
+  color:#fff;padding:1rem;border-radius:8px;
+  text-decoration:none;font-weight:700;font-size:1rem;
+  transition:all .2s;border:none;cursor:pointer;
+  box-shadow:0 0 30px rgba(124,92,252,.4);
+  font-family:'Syne',sans-serif;
+}
+.btn-buy:hover{transform:translateY(-2px);box-shadow:0 0 50px rgba(124,92,252,.6)}
+.trust-badges{display:flex;gap:1rem;margin-top:1rem;justify-content:center;flex-wrap:wrap}
+.trust-badge{
+  font-size:.7rem;font-family:'Space Mono',monospace;
+  color:var(--muted);display:flex;align-items:center;gap:.3rem;
+}
+
+/* ── MODAL ─────────────────────────────── */
+.modal-overlay{
+  display:none;position:fixed;inset:0;z-index:200;
+  background:rgba(0,0,0,.7);backdrop-filter:blur(8px);
+  align-items:center;justify-content:center;
+}
+.modal-overlay.open{display:flex}
+.modal{
+  background:var(--surface2);border:1px solid var(--border);
+  border-radius:20px;padding:2.5rem;max-width:480px;width:90%;
+  position:relative;animation:slideUp .3s ease;
+}
+@keyframes slideUp{from{transform:translateY(30px);opacity:0}to{transform:translateY(0);opacity:1}}
+.modal h3{font-size:1.5rem;font-weight:800;margin-bottom:.5rem}
+.modal p{color:var(--muted);font-size:.88rem;margin-bottom:1.5rem}
+.form-row{margin-bottom:1rem}
+.form-row label{display:block;font-size:.8rem;color:var(--muted);margin-bottom:.4rem;letter-spacing:.5px}
+.form-row input,.form-row select{
+  width:100%;background:rgba(255,255,255,.04);
+  border:1px solid var(--border);border-radius:8px;
+  padding:.75rem 1rem;color:var(--text);
+  font-family:'Syne',sans-serif;font-size:.9rem;
+  transition:border-color .2s;
+}
+.form-row input:focus,.form-row select:focus{outline:none;border-color:var(--accent)}
+.form-row select option{background:var(--surface2)}
+.modal-close{
+  position:absolute;top:1rem;right:1rem;
+  background:none;border:none;color:var(--muted);
+  font-size:1.2rem;cursor:pointer;transition:color .2s;
+}
+.modal-close:hover{color:var(--text)}
+.success-msg{
+  display:none;text-align:center;padding:2rem 0;
+}
+.success-msg .big-check{font-size:3rem;margin-bottom:1rem}
+.success-msg h4{font-size:1.2rem;font-weight:700;margin-bottom:.5rem}
+.success-msg p{color:var(--muted);font-size:.88rem}
+
+/* ── FOOTER ─────────────────────────────── */
+footer{
+  border-top:1px solid var(--border);
+  padding:2rem 3rem;
+  display:flex;align-items:center;justify-content:space-between;
+  color:var(--muted);font-size:.78rem;
+}
+.footer-links{display:flex;gap:2rem}
+.footer-links a{color:var(--muted);text-decoration:none;transition:color .2s}
+.footer-links a:hover{color:var(--text)}
+
+/* ── RESPONSIVE ─────────────────────────── */
+@media(max-width:768px){
+  nav{padding:1rem 1.5rem}
+  nav ul{display:none}
+  .stats{flex-direction:column}
+  .stat{border-right:none;border-bottom:1px solid var(--border)}
+  .steps{flex-direction:column;gap:2rem}
+  .steps::before{display:none}
+  .innovations-grid,.buy-grid{grid-template-columns:1fr}
+  footer{flex-direction:column;gap:1rem;text-align:center}
+}
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <div class="logo">ECHO<span>SIGN</span></div>
+  <ul>
+    <li><a href="#features">Features</a></li>
+    <li><a href="#how">How It Works</a></li>
+    <li><a href="#innovations">Tech</a></li>
+    <li><a href="/dashboard">Demo</a></li>
+    <li><a href="#buy">Buy</a></li>
+  </ul>
+  <a href="#buy" class="nav-cta">Get EchoSign →</a>
+</nav>
+
+<!-- HERO -->
+<section id="hero">
+  <div class="hero-grid"></div>
+  <div class="hero-orb"></div>
+
+  <div class="badge"><span class="badge-dot"></span> Real-Time · On-Device AI · No Calibration</div>
+  <h1>The Glove That<br/><strong>Listens Twice</strong></h1>
+  <p class="hero-sub">EchoSign translates sign language gestures to spoken words in real time — learning your unique signing style silently, across every conversation.</p>
+  <div class="hero-actions">
+    <a href="#buy" class="btn-primary">Buy EchoSign — $35</a>
+    <a href="/dashboard" class="btn-outline">Try Live Demo →</a>
+  </div>
+
+  <div class="stats">
+    <div class="stat"><div class="stat-val">97%</div><div class="stat-label">Peak Accuracy</div></div>
+    <div class="stat"><div class="stat-val">&lt;100ms</div><div class="stat-label">Latency</div></div>
+    <div class="stat"><div class="stat-val">0 min</div><div class="stat-label">Calibration</div></div>
+    <div class="stat"><div class="stat-val">28h</div><div class="stat-label">Battery Life</div></div>
+    <div class="stat"><div class="stat-val">4 langs</div><div class="stat-label">Output Languages</div></div>
+  </div>
+</section>
+
+<!-- FEATURES -->
+<section id="features">
+  <div class="container">
+    <div class="section-tag">// CAPABILITIES</div>
+    <h2 class="section-title">Everything your hands<br/>want to say</h2>
+    <div class="features-grid">
+      <div class="feat">
+        <div class="feat-icon" style="background:rgba(124,92,252,.15)">🧠</div>
+        <h3>On-Device DCNN Inference</h3>
+        <p>Dilated Causal CNN runs fully offline — no internet, no cloud. Your gestures never leave the device.</p>
+        <span class="chip chip-purple">sign_dcnn.tflite · 11D Input</span>
+      </div>
+      <div class="feat">
+        <div class="feat-icon" style="background:rgba(56,189,248,.12)">🎙️</div>
+        <h3>ACCI — Context Injection</h3>
+        <p>Listens to your conversation partner. Shrinks the gesture search space from 660 → 3 candidates. Fewer errors, faster decisions.</p>
+        <span class="chip chip-blue">Whisper Tiny + LLM · &lt;500ms</span>
+      </div>
+      <div class="feat">
+        <div class="feat-icon" style="background:rgba(52,211,153,.12)">🔄</div>
+        <h3>Echo Loop — Self-Training</h3>
+        <p>After every gesture, it silently confirms correctness via your partner's response. Personalization with zero effort.</p>
+        <span class="chip chip-green">42% → 97% over 20 conversations</span>
+      </div>
+      <div class="feat">
+        <div class="feat-icon" style="background:rgba(124,92,252,.15)">🌐</div>
+        <h3>Multilingual Speech Output</h3>
+        <p>Speak in English, Hindi, Spanish, or Mandarin. Switch language instantly — same gesture, different voice.</p>
+        <span class="chip chip-purple">EN · HI · ES · ZH</span>
+      </div>
+      <div class="feat">
+        <div class="feat-icon" style="background:rgba(56,189,248,.12)">🔋</div>
+        <h3>28-Hour Battery Life</h3>
+        <p>Silero-VAD wakes the system only when speech is detected. The glove stays on standby, not on drain.</p>
+        <span class="chip chip-blue">1000mAh LiPo · &lt;2mW standby</span>
+      </div>
+      <div class="feat">
+        <div class="feat-icon" style="background:rgba(52,211,153,.12)">💰</div>
+        <h3>$35 Bill of Materials</h3>
+        <p>5× flex sensors, MPU-6050 IMU, ESP32 microcontroller. No proprietary parts — fully open hardware.</p>
+        <span class="chip chip-green">Open Hardware · Community Support</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- HOW IT WORKS -->
+<section id="how">
+  <div class="container">
+    <div class="section-tag">// WORKFLOW</div>
+    <h2 class="section-title">From hand to voice<br/>in under one second</h2>
+    <div class="steps">
+      <div class="step">
+        <div class="step-num">1</div>
+        <h4>Flex + IMU Sensing</h4>
+        <p>5 flex sensors + 6-axis IMU sample at 20Hz producing an 11D feature vector per frame</p>
+      </div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <h4>ACCI Filters Context</h4>
+        <p>Partner speech is transcribed by Whisper Tiny. LLM narrows gesture candidates to 3</p>
+      </div>
+      <div class="step">
+        <div class="step-num">3</div>
+        <h4>DCNN Classifies</h4>
+        <p>Dilated CNN runs on a 10-frame window. Outputs label + confidence in &lt;10ms</p>
+      </div>
+      <div class="step">
+        <div class="step-num">4</div>
+        <h4>Speech Output</h4>
+        <p>pyttsx3 speaks the translated word in your chosen language instantly</p>
+      </div>
+      <div class="step">
+        <div class="step-num">5</div>
+        <h4>Echo Loop Learns</h4>
+        <p>Sentence-BERT compares output to partner response. Confidence map updated silently</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- INNOVATIONS -->
+<section id="innovations">
+  <div class="container">
+    <div class="section-tag">// INNOVATIONS</div>
+    <h2 class="section-title">Two features that change<br/>everything</h2>
+    <div class="innovations-grid">
+      <div class="innov-card">
+        <div class="innov-label">FEATURE 1 — ACCI</div>
+        <h3>Ambient Conversational Context Injection</h3>
+        <p class="desc">Instead of guessing between 660 possible gestures, EchoSign listens to your conversation partner and reduces the problem to just 3 likely candidates — before any gesture is even detected.</p>
+        <div class="innov-metric">Search space: 660 → 15 → 3 candidates<br/>Mathematical gain: 80% → 94% top-1 accuracy</div>
+      </div>
+      <div class="innov-card">
+        <div class="innov-label">FEATURE 2 — ECHO LOOP</div>
+        <h3>Confirmation Echo Self-Training</h3>
+        <p class="desc">After TTS output, EchoSign captures 2 seconds of ambient audio and uses Sentence-BERT to check if your partner's response semantically matches. No feedback button. No effort.</p>
+        <div class="innov-metric">cosine_similarity > 0.75 → CONFIRMED → confidence += 0.1<br/>Accuracy: 42% → 94% over 10 conversations</div>
+      </div>
+    </div>
+
+    <!-- Learning Curve Chart -->
+    <div class="curve-chart">
+      <div class="section-tag">// ECHO LOOP LEARNING CURVE</div>
+      <p style="font-size:.85rem;color:var(--muted)">Accuracy improves automatically as you use EchoSign — no calibration, no training sessions</p>
+      <div class="curve-bars" id="curveChart"></div>
+    </div>
+  </div>
+</section>
+
+<!-- BUY -->
+<section id="buy">
+  <div class="container">
+    <div class="section-tag">// GET ECHOSIGN</div>
+    <div class="buy-grid">
+      <div>
+        <h2 class="section-title">Ready to give your hands a voice?</h2>
+        <p class="section-sub">EchoSign ships as a complete kit with all hardware, pre-flashed firmware, and web dashboard access.</p>
+        <ul class="buy-features">
+          <li>Complete assembled glove (all 5 flex sensors + IMU)</li>
+          <li>ESP32 with pre-flashed EchoSign firmware</li>
+          <li>Web dashboard with live demo & language switching</li>
+          <li>Pre-trained DCNN model (sign_dcnn.tflite)</li>
+          <li>Echo Loop personalizes from day one</li>
+          <li>ACCI context pipeline included</li>
+          <li>Open-source firmware & model weights</li>
+          <li>Community Discord support</li>
+        </ul>
+      </div>
+      <div class="price-card">
+        <div style="color:var(--muted);font-size:.8rem;font-family:'Space Mono',monospace;margin-bottom:.5rem">COMPLETE KIT — ONE-TIME PURCHASE</div>
+        <div class="price-tag">$35<span> USD</span></div>
+        <div class="price-period">Free shipping · Ships in 3–5 business days</div>
+        <hr class="price-divider"/>
+        <ul class="price-includes">
+          <li><span class="pi-check">▸</span> EchoSign Glove Hardware</li>
+          <li><span class="pi-check">▸</span> Pre-trained AI Model</li>
+          <li><span class="pi-check">▸</span> Web Dashboard Access (lifetime)</li>
+          <li><span class="pi-check">▸</span> Multilingual TTS (4 languages)</li>
+          <li><span class="pi-check">▸</span> Echo Loop Self-Training</li>
+          <li><span class="pi-check">▸</span> ACCI Context Engine</li>
+          <li><span class="pi-check">▸</span> Open Source Firmware</li>
+        </ul>
+        <button class="btn-buy" onclick="openBuyModal()">Order EchoSign Now →</button>
+        <div class="trust-badges">
+          <span class="trust-badge">🔒 Secure Checkout</span>
+          <span class="trust-badge">📦 Free Returns</span>
+          <span class="trust-badge">⚡ Open Source</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="logo">ECHO<span style="color:var(--accent3)">SIGN</span> <span style="font-size:.7rem;color:var(--muted);margin-left:1rem">by AlgoArena · SPECTRE 2025</span></div>
+  <div class="footer-links">
+    <a href="/dashboard">Dashboard</a>
+    <a href="https://github.com" target="_blank">GitHub</a>
+    <a href="mailto:team@echosign.dev">Contact</a>
+  </div>
+</footer>
+
+<!-- BUY MODAL -->
+<div class="modal-overlay" id="buyModal">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal()">✕</button>
+    <div id="formSection">
+      <h3>Order EchoSign</h3>
+      <p>Fill in your details and we'll reach out to confirm your order within 24 hours.</p>
+      <div class="form-row"><label>FULL NAME</label><input type="text" id="fname" placeholder="Your full name"/></div>
+      <div class="form-row"><label>EMAIL</label><input type="email" id="femail" placeholder="your@email.com"/></div>
+      <div class="form-row"><label>COUNTRY</label>
+        <select id="fcountry">
+          <option value="">Select country</option>
+          <option>India</option><option>United States</option><option>United Kingdom</option>
+          <option>Canada</option><option>Australia</option><option>Germany</option><option>Other</option>
+        </select>
+      </div>
+      <div class="form-row"><label>OUTPUT LANGUAGE PREFERENCE</label>
+        <select id="flang">
+          <option value="en">English</option>
+          <option value="hi">Hindi (हिन्दी)</option>
+          <option value="es">Spanish (Español)</option>
+          <option value="zh">Mandarin (中文)</option>
+        </select>
+      </div>
+      <button class="btn-buy" onclick="submitOrder()" style="margin-top:.5rem">Confirm Order — $35 →</button>
+    </div>
+    <div class="success-msg" id="successSection">
+      <div class="big-check">✅</div>
+      <h4>Order Received!</h4>
+      <p>We'll email you at <strong id="confirmedEmail"></strong> within 24 hours to confirm shipping details. Welcome to EchoSign!</p>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── Curve Chart ─────────────────────────────────────────────
+const data = [
+  {conv:'Conv 1',acc:42},{conv:'Conv 3',acc:61},{conv:'Conv 6',acc:79},
+  {conv:'Conv 10',acc:94},{conv:'Conv 20',acc:97}
+];
+const chart = document.getElementById('curveChart');
+if(chart){
+  const max = 97;
+  data.forEach(d=>{
+    const h = Math.round((d.acc/max)*110);
+    chart.innerHTML += `
+      <div class="bar-wrap">
+        <div class="bar-val">${d.acc}%</div>
+        <div class="bar" style="height:${h}px"></div>
+        <div class="bar-label">${d.conv}</div>
+      </div>`;
+  });
+}
+
+// ── Modal ────────────────────────────────────────────────────
+function openBuyModal(){
+  document.getElementById('buyModal').classList.add('open');
+}
+function closeModal(){
+  document.getElementById('buyModal').classList.remove('open');
+  document.getElementById('formSection').style.display='block';
+  document.getElementById('successSection').style.display='none';
+}
+function submitOrder(){
+  const name  = document.getElementById('fname').value.trim();
+  const email = document.getElementById('femail').value.trim();
+  const country = document.getElementById('fcountry').value;
+  if(!name||!email||!country){alert('Please fill in all fields.');return;}
+  document.getElementById('formSection').style.display='none';
+  document.getElementById('confirmedEmail').textContent=email;
+  document.getElementById('successSection').style.display='block';
+}
+document.getElementById('buyModal').addEventListener('click',e=>{
+  if(e.target===document.getElementById('buyModal')) closeModal();
+});
+
+// ── Scroll animations ────────────────────────────────────────
+const observer = new IntersectionObserver(entries=>{
+  entries.forEach(e=>{
+    if(e.isIntersecting) e.target.classList.add('visible');
+  });
+},{threshold:.1});
+document.querySelectorAll('.feat,.innov-card,.step').forEach(el=>{
+  el.style.opacity='0';el.style.transform='translateY(20px)';
+  el.style.transition='opacity .5s ease,transform .5s ease';
+  observer.observe(el);
+});
+document.querySelectorAll('.visible').forEach(()=>{});
+const obs2 = new IntersectionObserver(entries=>{
+  entries.forEach(e=>{
+    if(e.isIntersecting){
+      e.target.style.opacity='1';e.target.style.transform='translateY(0)';
+    }
+  });
+},{threshold:.1});
+document.querySelectorAll('.feat,.innov-card,.step').forEach(el=>obs2.observe(el));
+</script>
+</body>
+</html>
