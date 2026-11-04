@@ -1,0 +1,18 @@
+[project]
+name = "echosign"
+version = "1.0.0"
+description = "EchoSign - Wearable Gesture-to-Speech AI System"
+requires-python = ">=3.9"
+dependencies = [
+    "flask>=3.0.0",
+    "numpy>=1.24.0",
+    "gunicorn>=21.2.0",
+]
+
+[tool.vercel]
+# Vercel will automatically detect Flask in app.py
+# No additional configuration needed for zero-configuration deployment
+
+[tool.vercel.scripts]
+# Optional: Add build scripts if needed
+# build = "python build.py"

@@ -13,7 +13,7 @@ import json, os, time, random
 import numpy as np
 
 app = Flask(__name__)
-app.config['SECRET_KEY'] = 'echosign-secret'
+app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'echosign-secret')
 
 # ── Load scaler params ─────────────────────────────────────────
 BASE = os.path.dirname(__file__)
@@ -200,4 +200,5 @@ def api_reset_loop():
     return jsonify({'reset': True})
 
 if __name__ == '__main__':
-    app.run(debug=True, port=5000)
+    debug_mode = os.environ.get('FLASK_DEBUG', 'False').lower() == 'true'
+    app.run(debug=debug_mode, host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))

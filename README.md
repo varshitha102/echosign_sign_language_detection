@@ -26,6 +26,12 @@ echosign/
 
 ---
 
+## 🚀 Deployment
+
+### Quick Deploy
+- **Vercel**: Zero-configuration Flask deployment - see [DEPLOYMENT.md](DEPLOYMENT.md)
+- **Render**: Native Python/Flask support - see [DEPLOYMENT.md](DEPLOYMENT.md)
+
 ## Quick Start
 
 ### 1. Copy your model files
