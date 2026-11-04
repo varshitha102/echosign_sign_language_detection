@@ -10,8 +10,8 @@ dependencies = [
 ]
 
 [tool.vercel]
-# Vercel will automatically detect Flask in app.py
-# No additional configuration needed for zero-configuration deployment
+# Explicitly tell Vercel where the Flask app is located
+entrypoint = "app:app"
 
 [tool.vercel.scripts]
 # Optional: Add build scripts if needed

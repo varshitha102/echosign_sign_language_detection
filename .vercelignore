@@ -6,7 +6,4 @@ __pycache__/
 *.pyd
 .git/
 .gitignore
-models/sign_dcnn_model.keras
-models/sign_dcnn.tflite
-models/model_architecture.json
 .DS_Store
